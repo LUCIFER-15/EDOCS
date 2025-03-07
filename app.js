@@ -14,7 +14,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Connect to MongoDB
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/application_system', {
+mongoose.connect(process.env.MONGODB_URI || 'mongodb://mongodb+srv://root:<db_password>@cluster0.3fbun.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0/application_system', {
     useNewUrlParser: true,
     useUnifiedTopology: true
 })
