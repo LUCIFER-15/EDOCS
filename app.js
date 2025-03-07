@@ -14,12 +14,23 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Connect to MongoDB
-mongoose.connect(process.env.MONGODB_URI || 'mongodb+srv://root:Suraj7972@cluster0.xo3ff.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0', {
+mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/application_system', {
     useNewUrlParser: true,
-    useUnifiedTopology: true
+    useUnifiedTopology: true,
+    serverSelectionTimeoutMS: 30000, // Increase timeout to 30 seconds
+    socketTimeoutMS: 45000, // Increase socket timeout
+    connectTimeoutMS: 30000, // Increase connection timeout
+    heartbeatFrequencyMS: 5000 // More frequent heartbeats
 })
 .then(() => console.log('MongoDB connected'))
-.catch(err => console.error('MongoDB connection error:', err));
+.catch(err => {
+    console.error('MongoDB connection error details:', {
+        message: err.message,
+        code: err.code,
+        name: err.name,
+        stack: err.stack
+    });
+});
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
@@ -42,10 +53,14 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(session({
-    secret: 'application-system-secret',
+    secret: process.env.SESSION_SECRET || 'application-system-secret',
     resave: false,
-    saveUninitialized: true,
-    cookie: { secure: false } // set to true if using https
+    saveUninitialized: false, // Changed to false for better session handling
+    cookie: { 
+        secure: process.env.NODE_ENV === 'production', // Only use secure cookies in production
+        maxAge: 24 * 60 * 60 * 1000, // 1 day
+        httpOnly: true
+    }
 }));
 
 // Set view engine
@@ -56,6 +71,16 @@ app.set('views', path.join(__dirname, 'views'));
 // Routes
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// Health check route
+app.get('/health', (req, res) => {
+    res.status(200).json({
+        status: 'ok',
+        message: 'Server is running',
+        mongoConnection: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+        timestamp: new Date().toISOString()
+    });
 });
 
 // API routes

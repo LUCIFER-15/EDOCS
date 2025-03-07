@@ -7,8 +7,10 @@ exports.register = async (req, res) => {
     try {
         const { name, email, password, contactNumber } = req.body;
 
+        console.log('Registration attempt:', { name, email, contactNumber });
+
         // Check if user already exists
-        let user = await User.findOne({ email });
+        let user = await User.findOne({ email }).maxTimeMS(20000); // Add timeout for this query
         if (user) {
             return res.status(400).json({ message: 'User already exists' });
         }
@@ -31,8 +33,16 @@ exports.register = async (req, res) => {
             userId: user._id
         });
     } catch (error) {
-        console.error('Registration error:', error.message, error.stack);
-        res.status(500).json({ message: 'Server error', error: error.message });
+        console.error('Registration error details:', {
+            message: error.message,
+            stack: error.stack,
+            name: error.name,
+            code: error.code
+        });
+        res.status(500).json({ 
+            message: 'Server error', 
+            error: error.message 
+        });
     }
 };
 
