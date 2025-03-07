@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Submit Application - Application System</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>Application System</h1>
+            <nav>
+                <ul>
+                    <li><a href="/user/dashboard" class="btn-nav">Dashboard</a></li>
+                    <li><a href="/user/application" class="btn-nav btn-nav-register">Submit Application</a></li>
+                    <li><a href="#" id="logoutBtn" class="btn-nav btn-nav-admin">Logout</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <div class="form-container">
+                <h2>Submit Application</h2>
+                <form id="applicationForm" enctype="multipart/form-data">
+                    <div class="form-group">
+                        <label for="nationality">Nationality</label>
+                        <input type="text" id="nationality" name="nationality" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="income">Annual Income (in $)</label>
+                        <input type="number" id="income" name="income" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="domicileStatus">Domicile Status</label>
+                        <select id="domicileStatus" name="domicileStatus" class="form-control" required>
+                            <option value="">Select Domicile Status</option>
+                            <option value="Local">Local</option>
+                            <option value="Non-Local">Non-Local</option>
+                            <option value="Foreign">Foreign</option>
+                        </select>
+                    </div>
+                    
+                    <h3>Document Upload</h3>
+                    <div class="form-group">
+                        <label for="pancard">PAN Card</label>
+                        <input type="file" id="pancard" name="pancard" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="rationCard">Ration Card</label>
+                        <input type="file" id="rationCard" name="rationCard" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="aadhaarCard">Aadhaar Card</label>
+                        <input type="file" id="aadhaarCard" name="aadhaarCard" class="form-control" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <button type="submit" class="btn btn-primary">Submit Application</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 Application System. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        // Check if user already has an application
+        async function checkExistingApplication() {
+            try {
+                const response = await fetch('/api/users/application');
+                
+                if (response.status === 401) {
+                    // Unauthorized, redirect to login
+                    window.location.href = '/login';
+                    return;
+                }
+                
+                if (response.ok) {
+                    // User already has an application
+                    alert('You have already submitted an application. Redirecting to dashboard.');
+                    window.location.href = '/user/dashboard';
+                }
+                
+            } catch (error) {
+                console.error('Error checking application:', error);
+            }
+        }
+        
+        // Handle application submission
+        document.getElementById('applicationForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            // Create FormData object
+            const formData = new FormData();
+            
+            // Add form fields to FormData
+            formData.append('nationality', document.getElementById('nationality').value);
+            formData.append('income', document.getElementById('income').value);
+            formData.append('domicileStatus', document.getElementById('domicileStatus').value);
+            
+            // Add files to FormData
+            formData.append('pancard', document.getElementById('pancard').files[0]);
+            formData.append('rationCard', document.getElementById('rationCard').files[0]);
+            formData.append('aadhaarCard', document.getElementById('aadhaarCard').files[0]);
+            
+            try {
+                const response = await fetch('/api/users/application', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    alert('Application submitted successfully!');
+                    window.location.href = '/user/dashboard';
+                } else {
+                    alert(data.message || 'Application submission failed');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred during application submission');
+            }
+        });
+        
+        // Handle logout
+        document.getElementById('logoutBtn').addEventListener('click', async function(e) {
+            e.preventDefault();
+            
+            try {
+                const response = await fetch('/api/users/logout');
+                
+                if (response.ok) {
+                    window.location.href = '/login';
+                } else {
+                    alert('Logout failed');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred during logout');
+            }
+        });
+        
+        // Check for existing application when page loads
+        window.addEventListener('load', function() {
+            checkExistingApplication();
+        });
+    </script>
+</body>
+</html> 

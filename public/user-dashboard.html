@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Dashboard - Application System</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>Application System</h1>
+            <nav>
+                <ul>
+                    <li><a href="/user/dashboard" class="btn-nav">Dashboard</a></li>
+                    <li><a href="/user/application" class="btn-nav btn-nav-register">Submit Application</a></li>
+                    <li><a href="#" id="logoutBtn" class="btn-nav btn-nav-admin">Logout</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <div class="container dashboard">
+            <div class="dashboard-header">
+                <h2>User Dashboard</h2>
+            </div>
+            
+            <div class="dashboard-card">
+                <h3>Welcome, <span id="userName">User</span>!</h3>
+                <p>Email: <span id="userEmail"></span></p>
+                <p>Contact: <span id="userContact"></span></p>
+            </div>
+            
+            <div class="dashboard-card" id="applicationStatus">
+                <h3>Application Status</h3>
+                <div id="noApplication" style="display: none;">
+                    <p>You haven't submitted an application yet.</p>
+                    <a href="/user/application" class="btn btn-primary">Submit Application</a>
+                </div>
+                <div id="applicationDetails" style="display: none;">
+                    <table>
+                        <tr>
+                            <th>Status</th>
+                            <td><span id="appStatus" class="badge"></span></td>
+                        </tr>
+                        <tr>
+                            <th>Nationality</th>
+                            <td id="appNationality"></td>
+                        </tr>
+                        <tr>
+                            <th>Income</th>
+                            <td id="appIncome"></td>
+                        </tr>
+                        <tr>
+                            <th>Domicile Status</th>
+                            <td id="appDomicile"></td>
+                        </tr>
+                        <tr>
+                            <th>Submitted On</th>
+                            <td id="appDate"></td>
+                        </tr>
+                        <tr>
+                            <th>Admin Comments</th>
+                            <td id="appComments"></td>
+                        </tr>
+                        <tr>
+                            <th>Payment Status</th>
+                            <td id="appPayment"></td>
+                        </tr>
+                    </table>
+                    <h4>Uploaded Documents</h4>
+                    <ul id="documentsList">
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 Application System. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        // Fetch user profile
+        async function fetchUserProfile() {
+            try {
+                const response = await fetch('/api/users/profile');
+                
+                if (response.status === 401) {
+                    // Unauthorized, redirect to login
+                    window.location.href = '/login';
+                    return;
+                }
+                
+                const user = await response.json();
+                
+                // Update user info
+                document.getElementById('userName').textContent = user.name;
+                document.getElementById('userEmail').textContent = user.email;
+                document.getElementById('userContact').textContent = user.contactNumber;
+                
+            } catch (error) {
+                console.error('Error fetching profile:', error);
+                alert('Failed to load user profile');
+            }
+        }
+        
+        // Fetch application
+        async function fetchApplication() {
+            try {
+                const response = await fetch('/api/users/application');
+                
+                if (response.status === 404) {
+                    // No application found
+                    document.getElementById('noApplication').style.display = 'block';
+                    document.getElementById('applicationDetails').style.display = 'none';
+                    return;
+                }
+                
+                if (response.status === 401) {
+                    // Unauthorized, redirect to login
+                    window.location.href = '/login';
+                    return;
+                }
+                
+                const application = await response.json();
+                
+                // Show application details
+                document.getElementById('noApplication').style.display = 'none';
+                document.getElementById('applicationDetails').style.display = 'block';
+                
+                // Update application info
+                const statusElem = document.getElementById('appStatus');
+                statusElem.textContent = application.status.toUpperCase();
+                statusElem.className = 'badge badge-' + application.status;
+                
+                document.getElementById('appNationality').textContent = application.nationality;
+                document.getElementById('appIncome').textContent = '$' + application.income;
+                document.getElementById('appDomicile').textContent = application.domicileStatus;
+                document.getElementById('appDate').textContent = new Date(application.createdAt).toLocaleDateString();
+                document.getElementById('appComments').textContent = application.adminComments || 'No comments yet';
+                document.getElementById('appPayment').textContent = application.paymentStatus.toUpperCase();
+                
+                // Display documents
+                const documentsList = document.getElementById('documentsList');
+                documentsList.innerHTML = '';
+                
+                const documents = [
+                    { name: 'PAN Card', path: application.documents.pancard },
+                    { name: 'Ration Card', path: application.documents.rationCard },
+                    { name: 'Aadhaar Card', path: application.documents.aadhaarCard }
+                ];
+                
+                documents.forEach(doc => {
+                    const li = document.createElement('li');
+                    const link = document.createElement('a');
+                    link.href = '/' + doc.path;
+                    link.textContent = doc.name;
+                    link.target = '_blank';
+                    li.appendChild(link);
+                    documentsList.appendChild(li);
+                });
+                
+            } catch (error) {
+                console.error('Error fetching application:', error);
+                alert('Failed to load application details');
+            }
+        }
+        
+        // Handle logout
+        document.getElementById('logoutBtn').addEventListener('click', async function(e) {
+            e.preventDefault();
+            
+            try {
+                const response = await fetch('/api/users/logout');
+                
+                if (response.ok) {
+                    window.location.href = '/login';
+                } else {
+                    alert('Logout failed');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred during logout');
+            }
+        });
+        
+        // Load data when page loads
+        window.addEventListener('load', function() {
+            fetchUserProfile();
+            fetchApplication();
+        });
+    </script>
+</body>
+</html> 
