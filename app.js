@@ -13,24 +13,50 @@ const adminRoutes = require('./routes/adminRoutes');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Connect to MongoDB
-mongoose.connect(process.env.MONGODB_URI || 'mongodb+srv://root:Suraj7972@cluster0.xo3ff.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0', {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-    serverSelectionTimeoutMS: 30000, // Increase timeout to 30 seconds
-    socketTimeoutMS: 45000, // Increase socket timeout
-    connectTimeoutMS: 30000, // Increase connection timeout
-    heartbeatFrequencyMS: 5000 // More frequent heartbeats
-})
-.then(() => console.log('MongoDB connected'))
-.catch(err => {
-    console.error('MongoDB connection error details:', {
-        message: err.message,
-        code: err.code,
-        name: err.name,
-        stack: err.stack
+// Connect to MongoDB with retry mechanism
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://root:Suraj7972@cluster0.xo3ff.mongodb.net/application_system?retryWrites=true&w=majority';
+const MAX_RETRIES = 5;
+let retryCount = 0;
+
+console.log('Attempting to connect to MongoDB...');
+
+function connectWithRetry() {
+    console.log(`MongoDB connection attempt ${retryCount + 1} of ${MAX_RETRIES}`);
+    
+    return mongoose.connect(MONGODB_URI, {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+        serverSelectionTimeoutMS: 60000,
+        socketTimeoutMS: 60000,
+        connectTimeoutMS: 60000,
+        heartbeatFrequencyMS: 3000,
+        family: 4
+    })
+    .then(() => {
+        console.log('MongoDB connected successfully');
+        console.log('Connection state:', mongoose.connection.readyState);
+        console.log('Connected to database:', mongoose.connection.name);
+    })
+    .catch(err => {
+        console.error('MongoDB connection error details:', {
+            message: err.message,
+            code: err.code,
+            name: err.name,
+            reason: err.reason ? JSON.stringify(err.reason) : 'No reason provided'
+        });
+        
+        retryCount++;
+        if (retryCount < MAX_RETRIES) {
+            console.log(`Retrying connection in 5 seconds...`);
+            setTimeout(connectWithRetry, 5000);
+        } else {
+            console.error(`Failed to connect to MongoDB after ${MAX_RETRIES} attempts`);
+        }
     });
-});
+}
+
+// Start the connection process
+connectWithRetry();
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
@@ -63,6 +89,25 @@ app.use(session({
     }
 }));
 
+// Database connection check middleware
+app.use((req, res, next) => {
+    // Skip for static files
+    if (req.url.startsWith('/css') || req.url.startsWith('/js') || req.url.startsWith('/uploads')) {
+        return next();
+    }
+    
+    // Check MongoDB connection for API routes
+    if (req.url.startsWith('/api') && mongoose.connection.readyState !== 1) {
+        console.error('MongoDB not connected in middleware. State:', mongoose.connection.readyState);
+        return res.status(503).json({ 
+            message: 'Service temporarily unavailable', 
+            error: 'Database connection issue' 
+        });
+    }
+    
+    next();
+});
+
 // Set view engine
 app.set('view engine', 'html');
 app.engine('html', require('ejs').renderFile);
@@ -75,10 +120,40 @@ app.get('/', (req, res) => {
 
 // Health check route
 app.get('/health', (req, res) => {
+    // Check MongoDB connection
+    const mongoState = mongoose.connection.readyState;
+    let mongoStatus;
+    
+    switch(mongoState) {
+        case 0: mongoStatus = 'disconnected'; break;
+        case 1: mongoStatus = 'connected'; break;
+        case 2: mongoStatus = 'connecting'; break;
+        case 3: mongoStatus = 'disconnecting'; break;
+        default: mongoStatus = 'unknown';
+    }
+    
+    // Get memory usage
+    const memoryUsage = process.memoryUsage();
+    
     res.status(200).json({
-        status: 'ok',
+        status: mongoState === 1 ? 'ok' : 'degraded',
         message: 'Server is running',
-        mongoConnection: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+        mongoConnection: {
+            status: mongoStatus,
+            state: mongoState,
+            host: mongoose.connection.host || 'not connected',
+            database: mongoose.connection.name || 'not connected'
+        },
+        environment: {
+            nodeEnv: process.env.NODE_ENV || 'development',
+            port: PORT
+        },
+        memory: {
+            rss: `${Math.round(memoryUsage.rss / 1024 / 1024)} MB`,
+            heapTotal: `${Math.round(memoryUsage.heapTotal / 1024 / 1024)} MB`,
+            heapUsed: `${Math.round(memoryUsage.heapUsed / 1024 / 1024)} MB`
+        },
+        uptime: `${Math.round(process.uptime())} seconds`,
         timestamp: new Date().toISOString()
     });
 });
