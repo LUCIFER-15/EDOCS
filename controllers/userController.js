@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const Application = require('../models/Application');
+const fs = require('fs');
 
 // Register a new user
 exports.register = async (req, res) => {
@@ -30,8 +31,8 @@ exports.register = async (req, res) => {
             userId: user._id
         });
     } catch (error) {
-        console.error('Registration error:', error);
-        res.status(500).json({ message: 'Server error' });
+        console.error('Registration error:', error.message, error.stack);
+        res.status(500).json({ message: 'Server error', error: error.message });
     }
 };
 
@@ -139,4 +140,10 @@ exports.getApplication = async (req, res) => {
         console.error('Get application error:', error);
         res.status(500).json({ message: 'Server error' });
     }
-}; 
+};
+
+// In app.js or server initialization
+const uploadDir = './public/uploads';
+if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+} 
