@@ -14,7 +14,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Connect to MongoDB with retry mechanism
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://root:Suraj7972@cluster0.xo3ff.mongodb.net/application_system?retryWrites=true&w=majority';
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://root:Suraj7972@@cluster0.xo3ff.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0';
 const MAX_RETRIES = 5;
 let retryCount = 0;
 
