@@ -78,16 +78,16 @@ const upload = multer({ storage: storage });
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
-app.use(session({
-    secret: process.env.SESSION_SECRET || 'application-system-secret',
-    resave: false,
-    saveUninitialized: false, // Changed to false for better session handling
-    cookie: { 
-        secure: process.env.NODE_ENV === 'production', // Only use secure cookies in production
-        maxAge: 24 * 60 * 60 * 1000, // 1 day
-        httpOnly: true
-    }
-}));
+// app.use(session({
+//     secret: process.env.SESSION_SECRET || 'application-system-secret',
+//     resave: false,
+//     saveUninitialized: false, // Changed to false for better session handling
+//     cookie: { 
+//         secure: process.env.NODE_ENV === 'production', // Only use secure cookies in production
+//         maxAge: 24 * 60 * 60 * 1000, // 1 day
+//         httpOnly: true
+//     }
+// }));
 
 // Database connection check middleware
 app.use((req, res, next) => {
