@@ -89,6 +89,13 @@ app.use(express.static(path.join(__dirname, 'public')));
 //     }
 // }));
 
+app.use(session({
+    secret: '9f8e7d6c5b4a39281726354433221100fedcba0987654321abcdef1234567890',  // use a secure, unpredictable string
+    resave: false,
+    saveUninitialized: false,
+    cookie: { secure: false }  // set true if using HTTPS in production
+  }));
+
 // Database connection check middleware
 app.use((req, res, next) => {
     // Skip for static files
