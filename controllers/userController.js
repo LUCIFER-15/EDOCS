@@ -1,13 +1,38 @@
 const User = require('../models/User');
 const Application = require('../models/Application');
+const fs = require('fs');
+const mongoose = require('mongoose');
 
 // Register a new user
 exports.register = async (req, res) => {
     try {
+        // Check MongoDB connection state
+        if (mongoose.connection.readyState !== 1) {
+            console.error('MongoDB not connected. Current state:', mongoose.connection.readyState);
+            return res.status(500).json({ 
+                message: 'Database connection issue', 
+                error: 'MongoDB not connected' 
+            });
+        }
+
         const { name, email, password, contactNumber } = req.body;
 
-        // Check if user already exists
-        let user = await User.findOne({ email });
+        console.log('Registration attempt:', { name, email, contactNumber });
+
+        // Check if user already exists - with increased timeout and error handling
+        let user;
+        try {
+            user = await User.findOne({ email })
+                .maxTimeMS(30000) // Increase timeout for this query
+                .exec();
+        } catch (findError) {
+            console.error('Error finding user:', findError);
+            return res.status(500).json({ 
+                message: 'Database query error', 
+                error: findError.message 
+            });
+        }
+
         if (user) {
             return res.status(400).json({ message: 'User already exists' });
         }
@@ -20,7 +45,16 @@ exports.register = async (req, res) => {
             contactNumber
         });
 
-        await user.save();
+        // Save with explicit timeout
+        try {
+            await user.save({ maxTimeMS: 30000 });
+        } catch (saveError) {
+            console.error('Error saving user:', saveError);
+            return res.status(500).json({ 
+                message: 'Error creating user', 
+                error: saveError.message 
+            });
+        }
 
         // Create session
         req.session.userId = user._id;
@@ -30,8 +64,16 @@ exports.register = async (req, res) => {
             userId: user._id
         });
     } catch (error) {
-        console.error('Registration error:', error);
-        res.status(500).json({ message: 'Server error' });
+        console.error('Registration error details:', {
+            message: error.message,
+            stack: error.stack,
+            name: error.name,
+            code: error.code
+        });
+        res.status(500).json({ 
+            message: 'Server error', 
+            error: error.message 
+        });
     }
 };
 
@@ -139,4 +181,10 @@ exports.getApplication = async (req, res) => {
         console.error('Get application error:', error);
         res.status(500).json({ message: 'Server error' });
     }
-}; 
+};
+
+// In app.js or server initialization
+const uploadDir = './public/uploads';
+if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+} 
