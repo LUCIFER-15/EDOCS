@@ -149,16 +149,21 @@ exports.submitApplication = async (req, res) => {
             return res.status(400).json({ message: 'All document files are required' });
         }
 
-        // Create new application with relative paths for easier frontend access
+        // Extract just the filename from the full path for each document
+        const pancardFilename = req.files.pancard[0].filename || req.files.pancard[0].path.split('/').pop();
+        const rationCardFilename = req.files.rationCard[0].filename || req.files.rationCard[0].path.split('/').pop();
+        const aadhaarCardFilename = req.files.aadhaarCard[0].filename || req.files.aadhaarCard[0].path.split('/').pop();
+
+        // Create new application with just the filenames and uploads/ prefix
         const application = new Application({
             user: userId,
             nationality,
             income,
             domicileStatus,
             documents: {
-                pancard: req.files.pancard[0].path.replace('public/', ''),
-                rationCard: req.files.rationCard[0].path.replace('public/', ''),
-                aadhaarCard: req.files.aadhaarCard[0].path.replace('public/', '')
+                pancard: `uploads/${pancardFilename}`,
+                rationCard: `uploads/${rationCardFilename}`,
+                aadhaarCard: `uploads/${aadhaarCardFilename}`
             }
         });
 
@@ -187,15 +192,35 @@ exports.getApplication = async (req, res) => {
         
         // Check if documents exist and fix paths if needed
         if (applicationData.documents) {
-            // If paths don't start with 'uploads/', prepend it
+            // Make sure all document paths start with 'uploads/'
             if (applicationData.documents.pancard && !applicationData.documents.pancard.startsWith('uploads/')) {
-                applicationData.documents.pancard = applicationData.documents.pancard.replace('public/', '');
+                // Handle absolute paths from Render
+                if (applicationData.documents.pancard.includes('/opt/render/project/src/')) {
+                    const filename = applicationData.documents.pancard.split('/').pop();
+                    applicationData.documents.pancard = `uploads/${filename}`;
+                } else {
+                    applicationData.documents.pancard = `uploads/${applicationData.documents.pancard.split('/').pop()}`;
+                }
             }
+            
             if (applicationData.documents.rationCard && !applicationData.documents.rationCard.startsWith('uploads/')) {
-                applicationData.documents.rationCard = applicationData.documents.rationCard.replace('public/', '');
+                // Handle absolute paths from Render
+                if (applicationData.documents.rationCard.includes('/opt/render/project/src/')) {
+                    const filename = applicationData.documents.rationCard.split('/').pop();
+                    applicationData.documents.rationCard = `uploads/${filename}`;
+                } else {
+                    applicationData.documents.rationCard = `uploads/${applicationData.documents.rationCard.split('/').pop()}`;
+                }
             }
+            
             if (applicationData.documents.aadhaarCard && !applicationData.documents.aadhaarCard.startsWith('uploads/')) {
-                applicationData.documents.aadhaarCard = applicationData.documents.aadhaarCard.replace('public/', '');
+                // Handle absolute paths from Render
+                if (applicationData.documents.aadhaarCard.includes('/opt/render/project/src/')) {
+                    const filename = applicationData.documents.aadhaarCard.split('/').pop();
+                    applicationData.documents.aadhaarCard = `uploads/${filename}`;
+                } else {
+                    applicationData.documents.aadhaarCard = `uploads/${applicationData.documents.aadhaarCard.split('/').pop()}`;
+                }
             }
         }
         

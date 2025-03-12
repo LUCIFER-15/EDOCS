@@ -155,11 +155,29 @@
                 ];
                 
                 documents.forEach(doc => {
+                    if (!doc.path) return; // Skip if path is undefined
+                    
                     const li = document.createElement('li');
                     const link = document.createElement('a');
-                    link.href = doc.path;
+                    
+                    // Ensure path starts with '/' if it doesn't already
+                    let docPath = doc.path;
+                    if (!docPath.startsWith('/')) {
+                        docPath = '/' + docPath;
+                    }
+                    
+                    // Remove any '/opt/render/project/src/' prefix that might be in the path
+                    docPath = docPath.replace('/opt/render/project/src/', '/');
+                    
+                    link.href = docPath;
                     link.textContent = doc.name;
                     link.target = '_blank';
+                    
+                    // Add error handling for broken links
+                    link.onerror = function() {
+                        console.error('Failed to load document:', docPath);
+                    };
+                    
                     li.appendChild(link);
                     documentsList.appendChild(li);
                 });

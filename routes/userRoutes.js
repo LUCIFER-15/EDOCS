@@ -8,6 +8,7 @@ const userController = require('../controllers/userController');
 // Configure multer for file uploads
 const storage = multer.diskStorage({
     destination: function(req, file, cb) {
+        // Use path.join for cross-platform compatibility
         const dir = path.join(__dirname, '../public/uploads');
         if (!fs.existsSync(dir)) {
             fs.mkdirSync(dir, { recursive: true });
@@ -15,7 +16,7 @@ const storage = multer.diskStorage({
         cb(null, dir);
     },
     filename: function(req, file, cb) {
-        // Add file extension to ensure proper file type recognition
+        // Create a unique filename without spaces
         const uniqueFilename = Date.now() + '-' + file.originalname.replace(/\s+/g, '-');
         cb(null, uniqueFilename);
     }
