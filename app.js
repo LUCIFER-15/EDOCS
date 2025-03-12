@@ -78,16 +78,9 @@ const upload = multer({ storage: storage });
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
-// app.use(session({
-//     secret: process.env.SESSION_SECRET || 'application-system-secret',
-//     resave: false,
-//     saveUninitialized: false, // Changed to false for better session handling
-//     cookie: { 
-//         secure: process.env.NODE_ENV === 'production', // Only use secure cookies in production
-//         maxAge: 24 * 60 * 60 * 1000, // 1 day
-//         httpOnly: true
-//     }
-// }));
+
+// Explicitly serve the uploads directory
+app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 
 app.use(session({
     secret: '9f8e7d6c5b4a39281726354433221100fedcba0987654321abcdef1234567890',  // use a secure, unpredictable string

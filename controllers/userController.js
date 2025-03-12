@@ -144,16 +144,21 @@ exports.submitApplication = async (req, res) => {
             return res.status(400).json({ message: 'You already have an application submitted' });
         }
 
-        // Create new application
+        // Ensure files exist
+        if (!req.files || !req.files.pancard || !req.files.rationCard || !req.files.aadhaarCard) {
+            return res.status(400).json({ message: 'All document files are required' });
+        }
+
+        // Create new application with relative paths for easier frontend access
         const application = new Application({
             user: userId,
             nationality,
             income,
             domicileStatus,
             documents: {
-                pancard: req.files.pancard[0].path,
-                rationCard: req.files.rationCard[0].path,
-                aadhaarCard: req.files.aadhaarCard[0].path
+                pancard: req.files.pancard[0].path.replace('public/', ''),
+                rationCard: req.files.rationCard[0].path.replace('public/', ''),
+                aadhaarCard: req.files.aadhaarCard[0].path.replace('public/', '')
             }
         });
 
@@ -176,7 +181,25 @@ exports.getApplication = async (req, res) => {
         if (!application) {
             return res.status(404).json({ message: 'Application not found' });
         }
-        res.json(application);
+
+        // Ensure document paths are properly formatted
+        const applicationData = application.toObject();
+        
+        // Check if documents exist and fix paths if needed
+        if (applicationData.documents) {
+            // If paths don't start with 'uploads/', prepend it
+            if (applicationData.documents.pancard && !applicationData.documents.pancard.startsWith('uploads/')) {
+                applicationData.documents.pancard = applicationData.documents.pancard.replace('public/', '');
+            }
+            if (applicationData.documents.rationCard && !applicationData.documents.rationCard.startsWith('uploads/')) {
+                applicationData.documents.rationCard = applicationData.documents.rationCard.replace('public/', '');
+            }
+            if (applicationData.documents.aadhaarCard && !applicationData.documents.aadhaarCard.startsWith('uploads/')) {
+                applicationData.documents.aadhaarCard = applicationData.documents.aadhaarCard.replace('public/', '');
+            }
+        }
+        
+        res.json(applicationData);
     } catch (error) {
         console.error('Get application error:', error);
         res.status(500).json({ message: 'Server error' });

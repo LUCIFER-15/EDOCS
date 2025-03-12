@@ -8,18 +8,36 @@ const userController = require('../controllers/userController');
 // Configure multer for file uploads
 const storage = multer.diskStorage({
     destination: function(req, file, cb) {
-        const dir = './public/uploads';
+        const dir = path.join(__dirname, '../public/uploads');
         if (!fs.existsSync(dir)) {
             fs.mkdirSync(dir, { recursive: true });
         }
         cb(null, dir);
     },
     filename: function(req, file, cb) {
-        cb(null, Date.now() + '-' + file.originalname);
+        // Add file extension to ensure proper file type recognition
+        const uniqueFilename = Date.now() + '-' + file.originalname.replace(/\s+/g, '-');
+        cb(null, uniqueFilename);
     }
 });
 
-const upload = multer({ storage: storage });
+// File filter to validate file types
+const fileFilter = (req, file, cb) => {
+    // Accept images and PDFs
+    if (file.mimetype.startsWith('image/') || file.mimetype === 'application/pdf') {
+        cb(null, true);
+    } else {
+        cb(new Error('Only images and PDF files are allowed'), false);
+    }
+};
+
+const upload = multer({ 
+    storage: storage,
+    fileFilter: fileFilter,
+    limits: {
+        fileSize: 5 * 1024 * 1024 // 5MB limit
+    }
+});
 
 // Middleware to check if user is logged in
 const isAuthenticated = (req, res, next) => {

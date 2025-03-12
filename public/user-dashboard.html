@@ -157,7 +157,7 @@
                 documents.forEach(doc => {
                     const li = document.createElement('li');
                     const link = document.createElement('a');
-                    link.href = '/' + doc.path;
+                    link.href = doc.path;
                     link.textContent = doc.name;
                     link.target = '_blank';
                     li.appendChild(link);
